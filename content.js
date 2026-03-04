@@ -1,23 +1,28 @@
 (() => {
+  // Suffix pattern for K (thousands), M/Mn (millions), B/Bn (billions)
+  const SUFFIX = '(?:\\s?[KkMmBb][Nn]?)?';
+  const NUM = '\\d{1,3}(?:,\\d{3})*(?:\\.\\d{1,2})?' + SUFFIX;
+  const NUM_EU = '\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?' + SUFFIX;
+
   const CURRENCY_PATTERNS = [
-    // USD: $100, $ 1,000.50, US$500
-    { regex: /US\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['USD'] },
-    { regex: /\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['USD'] },
-    // EUR: €100, 100€, 1.000,50€
-    { regex: /€\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?/g, currencies: ['EUR'] },
-    { regex: /\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?\s?€/g, currencies: ['EUR'] },
-    // GBP: £100, £1,000.50
-    { regex: /£\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['GBP'] },
-    // JPY/CNY ambiguous: ¥100, ¥1,000
-    { regex: /¥\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['JPY', 'CNY'] },
+    // USD: $100, $ 1,000.50, US$500, $77M, $1.5B
+    { regex: new RegExp('US\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
+    { regex: new RegExp('\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
+    // EUR: €100, 100€, 1.000,50€, €77M
+    { regex: new RegExp('€\\s?' + NUM_EU, 'g'), currencies: ['EUR'] },
+    { regex: new RegExp(NUM_EU + '\\s?€', 'g'), currencies: ['EUR'] },
+    // GBP: £100, £1,000.50, £77M
+    { regex: new RegExp('£\\s?' + NUM, 'g'), currencies: ['GBP'] },
+    // JPY/CNY ambiguous: ¥100, ¥1,000, ¥77M
+    { regex: new RegExp('¥\\s?' + NUM, 'g'), currencies: ['JPY', 'CNY'] },
     // CNY specific: 元
-    { regex: /\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s?元/g, currencies: ['CNY'] },
-    // Explicit currency codes: USD 100, EUR 1,000.50, etc.
-    { regex: /USD\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['USD'] },
-    { regex: /EUR\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?/g, currencies: ['EUR'] },
-    { regex: /GBP\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['GBP'] },
-    { regex: /JPY\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['JPY'] },
-    { regex: /(?:CNY|RMB)\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/g, currencies: ['CNY'] },
+    { regex: new RegExp(NUM + '\\s?元', 'g'), currencies: ['CNY'] },
+    // Explicit currency codes: USD 100, EUR 1,000.50, JPY 77M, etc.
+    { regex: new RegExp('USD\\s?' + NUM, 'g'), currencies: ['USD'] },
+    { regex: new RegExp('EUR\\s?' + NUM_EU, 'g'), currencies: ['EUR'] },
+    { regex: new RegExp('GBP\\s?' + NUM, 'g'), currencies: ['GBP'] },
+    { regex: new RegExp('JPY\\s?' + NUM, 'g'), currencies: ['JPY'] },
+    { regex: new RegExp('(?:CNY|RMB)\\s?' + NUM, 'g'), currencies: ['CNY'] },
   ];
 
   let rates = {};
@@ -34,13 +39,25 @@
       .replace(/[$€£¥元]/g, '')
       .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB)\b/g, '')
       .trim();
+
+    // Detect and remove suffix multiplier (K, M, Mn, B, Bn)
+    let multiplier = 1;
+    const suffixMatch = cleaned.match(/([KkMmBb][Nn]?)\s*$/);
+    if (suffixMatch) {
+      const suffix = suffixMatch[1].toUpperCase();
+      if (suffix === 'K') multiplier = 1_000;
+      else if (suffix === 'M' || suffix === 'MN') multiplier = 1_000_000;
+      else if (suffix === 'B' || suffix === 'BN') multiplier = 1_000_000_000;
+      cleaned = cleaned.replace(/[KkMmBb][Nn]?\s*$/, '').trim();
+    }
+
     // Handle European format: 1.000,50 → 1000.50
     if (/\d{1,3}\.\d{3}/.test(cleaned) && cleaned.includes(',')) {
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
     } else {
       cleaned = cleaned.replace(/,/g, '');
     }
-    return parseFloat(cleaned);
+    return parseFloat(cleaned) * multiplier;
   }
 
   function formatCurrency(amount, currency) {
