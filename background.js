@@ -1,4 +1,4 @@
-const SOURCE_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY'];
+const SOURCE_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'IDR'];
 const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
 
 async function fetchRatesForCurrency(base) {

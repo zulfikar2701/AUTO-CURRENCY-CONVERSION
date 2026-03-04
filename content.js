@@ -3,8 +3,13 @@
   const SUFFIX = '(?:\\s?[KkMmBb][Nn]?)?';
   const NUM = '\\d{1,3}(?:,\\d{3})*(?:\\.\\d{1,2})?' + SUFFIX;
   const NUM_EU = '\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?' + SUFFIX;
+  // Indonesian/dot-separated format: 12.900.000 (dots as thousands, no decimals)
+  const NUM_DOT = '\\d{1,3}(?:\\.\\d{3})+' + SUFFIX;
 
   const CURRENCY_PATTERNS = [
+    // IDR: Rp12.900.000, Rp 500.000, Rp100000
+    { regex: new RegExp('Rp\\.?\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
+    { regex: new RegExp('Rp\\.?\\s?' + NUM, 'g'), currencies: ['IDR'] },
     // USD: $100, $ 1,000.50, US$500, $77M, $1.5B
     { regex: new RegExp('US\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
     { regex: new RegExp('\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
@@ -17,7 +22,9 @@
     { regex: new RegExp('¥\\s?' + NUM, 'g'), currencies: ['JPY', 'CNY'] },
     // CNY specific: 元
     { regex: new RegExp(NUM + '\\s?元', 'g'), currencies: ['CNY'] },
-    // Explicit currency codes: USD 100, EUR 1,000.50, JPY 77M, etc.
+    // Explicit currency codes: USD 100, EUR 1,000.50, JPY 77M, IDR 500.000, etc.
+    { regex: new RegExp('IDR\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
+    { regex: new RegExp('IDR\\s?' + NUM, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('USD\\s?' + NUM, 'g'), currencies: ['USD'] },
     { regex: new RegExp('EUR\\s?' + NUM_EU, 'g'), currencies: ['EUR'] },
     { regex: new RegExp('GBP\\s?' + NUM, 'g'), currencies: ['GBP'] },
@@ -36,8 +43,9 @@
     // Remove currency symbols and codes
     let cleaned = text
       .replace(/US\$/g, '')
+      .replace(/Rp\.?/g, '')
       .replace(/[$€£¥元]/g, '')
-      .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB)\b/g, '')
+      .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB|IDR)\b/g, '')
       .trim();
 
     // Detect and remove suffix multiplier (K, M, Mn, B, Bn)
@@ -51,8 +59,13 @@
       cleaned = cleaned.replace(/[KkMmBb][Nn]?\s*$/, '').trim();
     }
 
+    // Handle dot-as-thousands format (IDR, etc.): 12.900.000 → 12900000
+    // Pattern: digits with dots as separators and NO comma → dots are thousands
+    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/\./g, '');
+    }
     // Handle European format: 1.000,50 → 1000.50
-    if (/\d{1,3}\.\d{3}/.test(cleaned) && cleaned.includes(',')) {
+    else if (/\d{1,3}\.\d{3}/.test(cleaned) && cleaned.includes(',')) {
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
     } else {
       cleaned = cleaned.replace(/,/g, '');
