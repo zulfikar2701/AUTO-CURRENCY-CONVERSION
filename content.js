@@ -29,7 +29,11 @@
 
   function parseAmount(text) {
     // Remove currency symbols and codes
-    let cleaned = text.replace(/[US$€£¥元]/g, '').replace(/USD|EUR|GBP|JPY|CNY|RMB/g, '').trim();
+    let cleaned = text
+      .replace(/US\$/g, '')
+      .replace(/[$€£¥元]/g, '')
+      .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB)\b/g, '')
+      .trim();
     // Handle European format: 1.000,50 → 1000.50
     if (/\d{1,3}\.\d{3}/.test(cleaned) && cleaned.includes(',')) {
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
@@ -122,17 +126,19 @@
 
     // Skip script/style/input elements
     const parent = textNode.parentNode;
-    if (!parent || parent.closest('script, style, textarea, input, .acc-currency, .acc-tooltip')) return;
+    if (!parent) return;
+    const tagName = parent.tagName;
+    if (tagName === 'SCRIPT' || tagName === 'STYLE' || tagName === 'TEXTAREA' || tagName === 'INPUT' || tagName === 'NOSCRIPT') return;
+    if (parent.classList && parent.classList.contains('acc-currency')) return;
+    if (parent.classList && parent.classList.contains('acc-tooltip')) return;
     if (parent.isContentEditable) return;
 
     const matches = [];
 
     for (const pattern of CURRENCY_PATTERNS) {
-      // Reset regex lastIndex
       const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
       let match;
       while ((match = regex.exec(text)) !== null) {
-        // Skip if this range overlaps with an existing match
         const overlaps = matches.some(
           (m) => match.index < m.index + m.length && match.index + match[0].length > m.index
         );
@@ -150,25 +156,19 @@
 
     if (matches.length === 0) return;
 
-    // Sort by position (reverse to process from end to start)
-    matches.sort((a, b) => b.index - a.index);
-
     processedNodes.add(textNode);
 
-    const fragment = document.createDocumentFragment();
-    let remainingText = text;
+    // Sort by position forward
+    matches.sort((a, b) => a.index - b.index);
 
-    // Rebuild from the sorted matches (reversed)
-    const forwardMatches = [...matches].reverse();
+    const fragment = document.createDocumentFragment();
     let lastIndex = 0;
 
-    for (const match of forwardMatches) {
-      // Add text before this match
+    for (const match of matches) {
       if (match.index > lastIndex) {
-        fragment.appendChild(document.createTextNode(remainingText.substring(lastIndex, match.index)));
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
       }
 
-      // Create wrapped span
       const span = document.createElement('span');
       span.className = 'acc-currency';
       span.textContent = match.text;
@@ -184,29 +184,20 @@
       lastIndex = match.index + match.length;
     }
 
-    // Add remaining text
-    if (lastIndex < remainingText.length) {
-      fragment.appendChild(document.createTextNode(remainingText.substring(lastIndex)));
+    if (lastIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
     }
 
     parent.replaceChild(fragment, textNode);
   }
 
   function scanDocument() {
+    if (!document.body) return;
+
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
-          if (processedNodes.has(node)) return NodeFilter.FILTER_REJECT;
-          const parent = node.parentNode;
-          if (parent && parent.closest('script, style, textarea, input, .acc-currency, .acc-tooltip')) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      }
+      null
     );
 
     const textNodes = [];
@@ -218,6 +209,7 @@
   }
 
   function setupObserver() {
+    if (!document.body) return;
     if (observer) observer.disconnect();
 
     observer = new MutationObserver((mutations) => {
@@ -230,7 +222,6 @@
         }
       }
       if (hasNewNodes) {
-        // Debounce scanning
         clearTimeout(setupObserver._timeout);
         setupObserver._timeout = setTimeout(scanDocument, 300);
       }
@@ -252,19 +243,28 @@
   }
 
   async function init() {
-    // Get settings and rates
-    const [settingsResponse, ratesResponse] = await Promise.all([
-      chrome.runtime.sendMessage({ type: 'getSettings' }),
-      chrome.runtime.sendMessage({ type: 'getRates' }),
-    ]);
+    try {
+      const [settingsResponse, ratesResponse] = await Promise.all([
+        chrome.runtime.sendMessage({ type: 'getSettings' }),
+        chrome.runtime.sendMessage({ type: 'getRates' }),
+      ]);
 
-    targetCurrency = settingsResponse.targetCurrency;
-    enabled = settingsResponse.enabled;
-    rates = ratesResponse.rates;
+      targetCurrency = settingsResponse.targetCurrency;
+      enabled = settingsResponse.enabled;
+      rates = ratesResponse.rates;
 
-    if (enabled && Object.keys(rates).length > 0) {
-      scanDocument();
-      setupObserver();
+      if (enabled) {
+        if (Object.keys(rates).length > 0) {
+          scanDocument();
+          setupObserver();
+        } else {
+          // Rates not ready yet — wait for them via storage change
+          console.log('Auto Currency: waiting for exchange rates...');
+          setupObserver();
+        }
+      }
+    } catch (err) {
+      console.error('Auto Currency: init failed', err);
     }
 
     // Listen for settings changes
