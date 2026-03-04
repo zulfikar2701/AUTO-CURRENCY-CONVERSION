@@ -106,6 +106,49 @@ body {
   border-color: #6366f1;
 }
 
+/* Site control */
+.site-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn-site {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-site:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.btn-site.blocked {
+  color: #22c55e;
+}
+
+.btn-site.blocked:hover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.site-name {
+  font-size: 11px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Footer */
 .footer {
   padding-top: 12px;

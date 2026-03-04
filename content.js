@@ -282,43 +282,55 @@
     }
   }
 
+  // Quick check if text contains any currency indicator before running full regex
+  const CURRENCY_CHARS = /[$€£¥元]|Rp|USD|EUR|GBP|JPY|CNY|RMB|IDR/;
+
+  let isScanning = false;
+
   function scanDocument() {
     if (!document.body) return;
 
-    // Pass 1: text node scanning (handles simple cases like "$100" in one text node)
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
+    isScanning = true;
+    if (observer) observer.disconnect();
 
-    const textNodes = [];
-    while (walker.nextNode()) {
-      textNodes.push(walker.currentNode);
+    try {
+      // Pass 1: text node scanning (handles simple cases like "$100" in one text node)
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+
+      const textNodes = [];
+      while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+      }
+
+      textNodes.forEach(processTextNode);
+
+      // Pass 2: element-level scanning for split structures
+      // Look for elements with price/currency-related attributes
+      const candidates = document.body.querySelectorAll(
+        '[data-testid*="price"], [class*="price"], [class*="Price"], [class*="cost"], [class*="Cost"], [class*="amount"], [class*="Amount"], [class*="currency"], [class*="Currency"]'
+      );
+      candidates.forEach(scanElementText);
+
+      // Also scan small elements that contain currency characters
+      // Only check elements with children (split structure) and currency indicators
+      document.body.querySelectorAll('span, div, p, a, li, td, th, dt, dd, label').forEach((el) => {
+        if (processedElements.has(el)) return;
+        if (el.children.length === 0 || el.children.length > 10) return;
+        if (el.textContent.length > 100) return;
+        if (!CURRENCY_CHARS.test(el.textContent)) return;
+        if (el.querySelector('.acc-currency')) return;
+        scanElementText(el);
+      });
+    } finally {
+      isScanning = false;
+      if (observer && enabled) {
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
     }
-
-    textNodes.forEach(processTextNode);
-
-    // Pass 2: element-level scanning for split structures
-    // Look for small container elements whose textContent matches a currency pattern
-    // but weren't caught by the text node pass
-    const candidates = document.body.querySelectorAll(
-      '[data-testid*="price"], [class*="price"], [class*="Price"], [class*="cost"], [class*="Cost"], [class*="amount"], [class*="Amount"], [class*="currency"], [class*="Currency"]'
-    );
-    candidates.forEach(scanElementText);
-
-    // Also scan small leaf-ish elements (few children) that might contain split currency
-    // This catches cases without semantic class names
-    document.body.querySelectorAll('span, div, p, a, li, td, th, dt, dd, label').forEach((el) => {
-      if (processedElements.has(el)) return;
-      if (el.querySelector('.acc-currency')) return;
-      // Only check small elements (avoid scanning huge containers)
-      if (el.children.length > 10) return;
-      if (el.textContent.length > 100) return;
-      // Must have at least one child element (otherwise text node pass would have caught it)
-      if (el.children.length === 0) return;
-      scanElementText(el);
-    });
   }
 
   function setupObserver() {
@@ -326,7 +338,7 @@
     if (observer) observer.disconnect();
 
     observer = new MutationObserver((mutations) => {
-      if (!enabled) return;
+      if (!enabled || isScanning) return;
       let hasNewNodes = false;
       for (const mutation of mutations) {
         if (mutation.addedNodes.length > 0) {
@@ -364,6 +376,13 @@
     hideTooltip();
   }
 
+  function isBlockedSite(blockedSites) {
+    const host = window.location.hostname;
+    return (blockedSites || []).some(domain =>
+      host === domain || host.endsWith('.' + domain)
+    );
+  }
+
   async function init() {
     try {
       const [settingsResponse, ratesResponse] = await Promise.all([
@@ -375,12 +394,17 @@
       enabled = settingsResponse.enabled;
       rates = ratesResponse.rates;
 
+      // Check if current site is blocked
+      if (isBlockedSite(settingsResponse.blockedSites)) {
+        enabled = false;
+        return;
+      }
+
       if (enabled) {
         if (Object.keys(rates).length > 0) {
           scanDocument();
           setupObserver();
         } else {
-          // Rates not ready yet — wait for them via storage change
           console.log('Auto Currency: waiting for exchange rates...');
           setupObserver();
         }

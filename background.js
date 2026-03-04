@@ -88,10 +88,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'getSettings') {
-    chrome.storage.sync.get(['targetCurrency', 'enabled']).then((data) => {
+    chrome.storage.sync.get(['targetCurrency', 'enabled', 'blockedSites']).then((data) => {
       sendResponse({
         targetCurrency: data.targetCurrency || 'USD',
-        enabled: data.enabled !== false
+        enabled: data.enabled !== false,
+        blockedSites: data.blockedSites || []
       });
     });
     return true;
