@@ -4,6 +4,8 @@
 
 # Auto Currency Conversion
 
+This project is vibe-coded by Claude Opus 4.6
+
 A browser extension for Chrome and Edge that detects currencies on any webpage and shows converted amounts when you hover over them.
 
 Supports USD ($), EUR (€), GBP (£), JPY (¥), and CNY (¥/元) with conversion to any of 20 popular target currencies.
