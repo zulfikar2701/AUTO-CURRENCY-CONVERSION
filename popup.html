@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+  <title>Auto Currency Conversion</title>
+</head>
+<body>
+  <div class="popup">
+    <div class="header">
+      <h1>Auto Currency</h1>
+      <label class="toggle">
+        <input type="checkbox" id="enabled" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="setting">
+      <label for="targetCurrency">Convert to:</label>
+      <select id="targetCurrency">
+        <option value="USD">USD — US Dollar</option>
+        <option value="EUR">EUR — Euro</option>
+        <option value="GBP">GBP — British Pound</option>
+        <option value="JPY">JPY — Japanese Yen</option>
+        <option value="CNY">CNY — Chinese Yuan</option>
+        <option value="IDR">IDR — Indonesian Rupiah</option>
+        <option value="SGD">SGD — Singapore Dollar</option>
+        <option value="MYR">MYR — Malaysian Ringgit</option>
+        <option value="THB">THB — Thai Baht</option>
+        <option value="PHP">PHP — Philippine Peso</option>
+        <option value="VND">VND — Vietnamese Dong</option>
+        <option value="KRW">KRW — South Korean Won</option>
+        <option value="INR">INR — Indian Rupee</option>
+        <option value="TWD">TWD — Taiwan Dollar</option>
+        <option value="HKD">HKD — Hong Kong Dollar</option>
+        <option value="AUD">AUD — Australian Dollar</option>
+        <option value="CAD">CAD — Canadian Dollar</option>
+        <option value="NZD">NZD — New Zealand Dollar</option>
+        <option value="CHF">CHF — Swiss Franc</option>
+        <option value="SEK">SEK — Swedish Krona</option>
+      </select>
+    </div>
+
+    <div class="footer">
+      <span id="status" class="status">Detecting: USD, EUR, GBP, JPY, CNY</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
