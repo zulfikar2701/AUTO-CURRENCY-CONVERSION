@@ -3,7 +3,7 @@
   "name": "Auto Currency Conversion",
   "version": "1.0.0",
   "description": "Automatically detect and convert major currencies on any webpage with a hover tooltip.",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "alarms"],
   "host_permissions": ["https://api.frankfurter.app/*"],
   "background": {
     "service_worker": "background.js"
