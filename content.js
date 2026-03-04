@@ -200,12 +200,14 @@
           (m) => match.index < m.index + m.length && match.index + match[0].length > m.index
         );
         if (!overlaps) {
+          const amount = parseAmount(match[0]);
+          if (isNaN(amount) || amount <= 0) continue;
           matches.push({
             index: match.index,
             length: match[0].length,
             text: match[0],
             currencies: pattern.currencies,
-            amount: parseAmount(match[0]),
+            amount,
           });
         }
       }
@@ -348,7 +350,21 @@
       }
       if (hasNewNodes) {
         clearTimeout(setupObserver._timeout);
-        setupObserver._timeout = setTimeout(scanDocument, 300);
+        // Start max-wait timer on first mutation in this burst
+        if (!setupObserver._maxWaitTimeout) {
+          setupObserver._maxWaitTimeout = setTimeout(() => {
+            clearTimeout(setupObserver._timeout);
+            setupObserver._timeout = null;
+            setupObserver._maxWaitTimeout = null;
+            scanDocument();
+          }, 2000);
+        }
+        setupObserver._timeout = setTimeout(() => {
+          clearTimeout(setupObserver._maxWaitTimeout);
+          setupObserver._maxWaitTimeout = null;
+          setupObserver._timeout = null;
+          scanDocument();
+        }, 300);
       }
     });
 
@@ -359,11 +375,14 @@
   }
 
   function removeHighlights() {
+    const parentsToNormalize = new Set();
     document.querySelectorAll('.acc-currency').forEach((el) => {
       if (el.dataset.accOriginal === undefined) {
         // This was a wrapped text node span we created — replace with text
+        const parent = el.parentNode;
         const textNode = document.createTextNode(el.textContent);
-        el.parentNode.replaceChild(textNode, el);
+        parent.replaceChild(textNode, el);
+        parentsToNormalize.add(parent);
       } else {
         // This was an existing element we tagged — just remove the class and listeners
         el.classList.remove('acc-currency');
@@ -371,6 +390,8 @@
         delete el.dataset.amount;
       }
     });
+    // Merge adjacent text nodes so re-scan can match multi-word patterns
+    parentsToNormalize.forEach((parent) => parent.normalize());
     processedNodes = new WeakSet();
     processedElements = new WeakSet();
     hideTooltip();

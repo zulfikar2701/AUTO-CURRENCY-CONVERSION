@@ -54,6 +54,14 @@ toggleSiteBtn.addEventListener('click', () => {
   }
 
   chrome.storage.sync.set({ blockedSites }, () => {
+    if (chrome.runtime.lastError) {
+      console.error('Failed to save blocked sites:', chrome.runtime.lastError.message);
+      // Revert the change
+      if (index === -1) blockedSites.pop();
+      else blockedSites.splice(index, 0, currentHostname);
+      updateSiteButton();
+      return;
+    }
     updateSiteButton();
     // Reload the tab to apply changes
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

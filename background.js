@@ -72,13 +72,13 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.alarms.create('refreshRates', { periodInMinutes: 360 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'refreshRates') {
-    updateRates();
+    getRatesIfStale();
   }
 });
 
 // Respond to messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (sender.id !== chrome.runtime.id) return;
+  if (sender.id !== chrome.runtime.id) return false;
 
   if (message.type === 'getRates') {
     chrome.storage.local.get(['rates']).then((data) => {
