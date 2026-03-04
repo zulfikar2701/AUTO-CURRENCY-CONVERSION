@@ -191,9 +191,44 @@
     parent.replaceChild(fragment, textNode);
   }
 
+  // Fallback: scan elements where currency symbol and amount are in separate child elements
+  // e.g. <span>¥</span><span>600</span> inside a container
+  let processedElements = new WeakSet();
+
+  function scanElementText(element) {
+    if (processedElements.has(element)) return;
+    // Skip if already processed by text node pass
+    if (element.querySelector('.acc-currency')) return;
+
+    const text = element.textContent;
+    if (!text || text.trim().length === 0) return;
+
+    for (const pattern of CURRENCY_PATTERNS) {
+      const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
+      const match = regex.exec(text);
+      if (match) {
+        const amount = parseAmount(match[0]);
+        if (isNaN(amount) || amount === 0) continue;
+
+        processedElements.add(element);
+        element.classList.add('acc-currency');
+        element.dataset.accOriginal = 'true';
+        element.dataset.currencies = JSON.stringify(pattern.currencies);
+        element.dataset.amount = amount;
+
+        element.addEventListener('mouseenter', () => {
+          showTooltip(element, pattern.currencies, amount);
+        });
+        element.addEventListener('mouseleave', hideTooltip);
+        return; // one match per element is enough
+      }
+    }
+  }
+
   function scanDocument() {
     if (!document.body) return;
 
+    // Pass 1: text node scanning (handles simple cases like "$100" in one text node)
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
@@ -206,6 +241,27 @@
     }
 
     textNodes.forEach(processTextNode);
+
+    // Pass 2: element-level scanning for split structures
+    // Look for small container elements whose textContent matches a currency pattern
+    // but weren't caught by the text node pass
+    const candidates = document.body.querySelectorAll(
+      '[data-testid*="price"], [class*="price"], [class*="Price"], [class*="cost"], [class*="Cost"], [class*="amount"], [class*="Amount"], [class*="currency"], [class*="Currency"]'
+    );
+    candidates.forEach(scanElementText);
+
+    // Also scan small leaf-ish elements (few children) that might contain split currency
+    // This catches cases without semantic class names
+    document.body.querySelectorAll('span, div, p, a, li, td, th, dt, dd, label').forEach((el) => {
+      if (processedElements.has(el)) return;
+      if (el.querySelector('.acc-currency')) return;
+      // Only check small elements (avoid scanning huge containers)
+      if (el.children.length > 10) return;
+      if (el.textContent.length > 100) return;
+      // Must have at least one child element (otherwise text node pass would have caught it)
+      if (el.children.length === 0) return;
+      scanElementText(el);
+    });
   }
 
   function setupObserver() {
@@ -234,11 +290,20 @@
   }
 
   function removeHighlights() {
-    document.querySelectorAll('.acc-currency').forEach((span) => {
-      const textNode = document.createTextNode(span.textContent);
-      span.parentNode.replaceChild(textNode, span);
+    document.querySelectorAll('.acc-currency').forEach((el) => {
+      if (el.dataset.accOriginal === undefined) {
+        // This was a wrapped text node span we created — replace with text
+        const textNode = document.createTextNode(el.textContent);
+        el.parentNode.replaceChild(textNode, el);
+      } else {
+        // This was an existing element we tagged — just remove the class and listeners
+        el.classList.remove('acc-currency');
+        delete el.dataset.currencies;
+        delete el.dataset.amount;
+      }
     });
     processedNodes = new WeakSet();
+    processedElements = new WeakSet();
     hideTooltip();
   }
 
