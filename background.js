@@ -13,7 +13,11 @@ async function fetchAllRates() {
   const results = await Promise.allSettled(
     SOURCE_CURRENCIES.map(async (currency) => {
       const data = await fetchRatesForCurrency(currency);
-      rates[currency] = data.rates;
+      if (data && data.rates && typeof data.rates === 'object') {
+        rates[currency] = data.rates;
+      } else {
+        console.error(`Invalid rate data for ${currency}`);
+      }
     })
   );
 
@@ -74,6 +78,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // Respond to messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return;
+
   if (message.type === 'getRates') {
     chrome.storage.local.get(['rates']).then((data) => {
       sendResponse({ rates: data.rates || {} });

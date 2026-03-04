@@ -102,27 +102,54 @@
     document.body.appendChild(tooltip);
   }
 
+  function createLine(className, parts) {
+    const div = document.createElement('div');
+    div.className = className;
+    for (const part of parts) {
+      if (part.tag) {
+        const span = document.createElement('span');
+        span.className = part.tag;
+        span.textContent = part.text;
+        div.appendChild(span);
+      } else {
+        div.appendChild(document.createTextNode(part.text));
+      }
+    }
+    return div;
+  }
+
   function showTooltip(element, currencies, amount) {
     createTooltip();
-    const lines = [];
+    tooltip.textContent = '';
+
+    const header = document.createElement('div');
+    header.className = 'acc-tooltip-header';
+    header.textContent = `Converted to ${targetCurrency}`;
+    tooltip.appendChild(header);
+
     for (const fromCurrency of currencies) {
       if (fromCurrency === targetCurrency) {
-        lines.push(`<div class="acc-tooltip-line">${formatCurrency(amount, fromCurrency)} <span class="acc-tooltip-note">(already ${targetCurrency})</span></div>`);
+        tooltip.appendChild(createLine('acc-tooltip-line', [
+          { text: formatCurrency(amount, fromCurrency) },
+          { text: ` (already ${targetCurrency})`, tag: 'acc-tooltip-note' },
+        ]));
         continue;
       }
       const converted = convert(amount, fromCurrency, targetCurrency);
       if (converted !== null) {
-        const label = currencies.length > 1 ? `<span class="acc-tooltip-label">If ${fromCurrency}:</span> ` : '';
-        lines.push(`<div class="acc-tooltip-line">${label}${formatCurrency(converted, targetCurrency)}</div>`);
+        const parts = [];
+        if (currencies.length > 1) {
+          parts.push({ text: `If ${fromCurrency}: `, tag: 'acc-tooltip-label' });
+        }
+        parts.push({ text: formatCurrency(converted, targetCurrency) });
+        tooltip.appendChild(createLine('acc-tooltip-line', parts));
       } else {
-        lines.push(`<div class="acc-tooltip-line acc-tooltip-error">Rate unavailable for ${fromCurrency}</div>`);
+        tooltip.appendChild(createLine('acc-tooltip-line acc-tooltip-error', [
+          { text: `Rate unavailable for ${fromCurrency}` },
+        ]));
       }
     }
 
-    tooltip.innerHTML = `
-      <div class="acc-tooltip-header">Converted to ${targetCurrency}</div>
-      ${lines.join('')}
-    `;
     tooltip.style.display = 'block';
 
     // Position tooltip
