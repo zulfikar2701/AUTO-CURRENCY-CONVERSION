@@ -5,9 +5,12 @@
   const NUM_EU = '\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?' + SUFFIX;
   // Indonesian/dot-separated format: 12.900.000 (dots as thousands, no decimals)
   const NUM_DOT = '\\d{1,3}(?:\\.\\d{3})+' + SUFFIX;
+  // Space-separated thousands format: 449 999, 1 000 000 (Steam, French locale, etc.)
+  const NUM_SPACE = '\\d{1,3}(?: \\d{3})+' + SUFFIX;
 
   const CURRENCY_PATTERNS = [
-    // IDR: Rp12.900.000, Rp 500.000, Rp100000
+    // IDR: Rp 449 999 (space-separated), Rp12.900.000, Rp 500.000, Rp100000
+    { regex: new RegExp('Rp\\.?\\s?' + NUM_SPACE, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('Rp\\.?\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('Rp\\.?\\s?' + NUM, 'g'), currencies: ['IDR'] },
     // USD: $100, $ 1,000.50, US$500, $77M, $1.5B
@@ -23,6 +26,7 @@
     // CNY specific: 元
     { regex: new RegExp(NUM + '\\s?元', 'g'), currencies: ['CNY'] },
     // Explicit currency codes: USD 100, EUR 1,000.50, JPY 77M, IDR 500.000, etc.
+    { regex: new RegExp('IDR\\s?' + NUM_SPACE, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('IDR\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('IDR\\s?' + NUM, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('USD\\s?' + NUM, 'g'), currencies: ['USD'] },
@@ -59,9 +63,13 @@
       cleaned = cleaned.replace(/[KkMmBb][Nn]?\s*$/, '').trim();
     }
 
+    // Handle space-as-thousands format: 449 999 → 449999
+    if (/^\d{1,3}( \d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/ /g, '');
+    }
     // Handle dot-as-thousands format (IDR, etc.): 12.900.000 → 12900000
     // Pattern: digits with dots as separators and NO comma → dots are thousands
-    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+    else if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
       cleaned = cleaned.replace(/\./g, '');
     }
     // Handle European format: 1.000,50 → 1000.50
