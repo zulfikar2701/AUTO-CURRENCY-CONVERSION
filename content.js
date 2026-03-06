@@ -13,9 +13,26 @@
     { regex: new RegExp('Rp\\.?\\s?' + NUM_SPACE, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('Rp\\.?\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('Rp\\.?\\s?' + NUM, 'g'), currencies: ['IDR'] },
-    // USD: $100, $ 1,000.50, US$500, $77M, $1.5B
+
+    // Compound $ prefixes (must be before bare $)
+    // BRL: R$100, R$ 74,99
+    { regex: new RegExp('R\\$\\s?' + NUM_EU, 'g'), currencies: ['BRL'] },
+    // AUD: A$100, AU$100
+    { regex: new RegExp('A(?:U)?\\$\\s?' + NUM, 'g'), currencies: ['AUD'] },
+    // NZD: NZ$100
+    { regex: new RegExp('NZ\\$\\s?' + NUM, 'g'), currencies: ['NZD'] },
+    // SGD: S$100
+    { regex: new RegExp('S\\$\\s?' + NUM, 'g'), currencies: ['SGD'] },
+    // HKD: HK$100
+    { regex: new RegExp('HK\\$\\s?' + NUM, 'g'), currencies: ['HKD'] },
+    // CAD: CDN$100, CA$100, C$100
+    { regex: new RegExp('(?:CDN|CA|C)\\$\\s?' + NUM, 'g'), currencies: ['CAD'] },
+    // MXN: Mex$100
+    { regex: new RegExp('Mex\\$\\s?' + NUM, 'g'), currencies: ['MXN'] },
+    // USD: US$500, $100, $77M, $1.5B
     { regex: new RegExp('US\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
     { regex: new RegExp('\\$\\s?' + NUM, 'g'), currencies: ['USD'] },
+
     // EUR: €100, 100€, 1.000,50€, €77M
     { regex: new RegExp('€\\s?' + NUM_EU, 'g'), currencies: ['EUR'] },
     { regex: new RegExp(NUM_EU + '\\s?€', 'g'), currencies: ['EUR'] },
@@ -25,7 +42,33 @@
     { regex: new RegExp('¥\\s?' + NUM, 'g'), currencies: ['JPY', 'CNY'] },
     // CNY specific: 元
     { regex: new RegExp(NUM + '\\s?元', 'g'), currencies: ['CNY'] },
-    // Explicit currency codes: USD 100, EUR 1,000.50, JPY 77M, IDR 500.000, etc.
+
+    // Unique symbol currencies
+    // INR: ₹100, ₹ 1,000
+    { regex: new RegExp('₹\\s?' + NUM, 'g'), currencies: ['INR'] },
+    // KRW: ₩100, ₩ 27000
+    { regex: new RegExp('₩\\s?' + NUM, 'g'), currencies: ['KRW'] },
+    // PHP: ₱779.00
+    { regex: new RegExp('₱\\s?' + NUM, 'g'), currencies: ['PHP'] },
+    // ILS: ₪89.00
+    { regex: new RegExp('₪\\s?' + NUM, 'g'), currencies: ['ILS'] },
+    // THB: ฿499.00
+    { regex: new RegExp('฿\\s?' + NUM, 'g'), currencies: ['THB'] },
+    // TRY: ₺100
+    { regex: new RegExp('₺\\s?' + NUM, 'g'), currencies: ['TRY'] },
+
+    // Other prefix patterns
+    // MYR: RM65.00, RM 100
+    { regex: new RegExp('RM\\s?' + NUM, 'g'), currencies: ['MYR'] },
+
+    // Postfix patterns
+    // PLN: 74,99zł, 100 zł
+    { regex: new RegExp(NUM_EU + '\\s?zł', 'g'), currencies: ['PLN'] },
+    // NOK/SEK/DKK/ISK: 235,00 kr, kr 100 (ambiguous Scandinavian)
+    { regex: new RegExp(NUM_EU + '\\s?kr(?![a-zA-Z])', 'g'), currencies: ['NOK', 'SEK', 'DKK'] },
+    { regex: new RegExp('kr\\s?' + NUM_EU, 'g'), currencies: ['NOK', 'SEK', 'DKK'] },
+
+    // Explicit currency codes
     { regex: new RegExp('IDR\\s?' + NUM_SPACE, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('IDR\\s?' + NUM_DOT, 'g'), currencies: ['IDR'] },
     { regex: new RegExp('IDR\\s?' + NUM, 'g'), currencies: ['IDR'] },
@@ -34,6 +77,31 @@
     { regex: new RegExp('GBP\\s?' + NUM, 'g'), currencies: ['GBP'] },
     { regex: new RegExp('JPY\\s?' + NUM, 'g'), currencies: ['JPY'] },
     { regex: new RegExp('(?:CNY|RMB)\\s?' + NUM, 'g'), currencies: ['CNY'] },
+    { regex: new RegExp('INR\\s?' + NUM, 'g'), currencies: ['INR'] },
+    { regex: new RegExp('KRW\\s?' + NUM, 'g'), currencies: ['KRW'] },
+    { regex: new RegExp('PHP\\s?' + NUM, 'g'), currencies: ['PHP'] },
+    { regex: new RegExp('ILS\\s?' + NUM, 'g'), currencies: ['ILS'] },
+    { regex: new RegExp('THB\\s?' + NUM, 'g'), currencies: ['THB'] },
+    { regex: new RegExp('TRY\\s?' + NUM, 'g'), currencies: ['TRY'] },
+    { regex: new RegExp('BRL\\s?' + NUM_EU, 'g'), currencies: ['BRL'] },
+    { regex: new RegExp('AUD\\s?' + NUM, 'g'), currencies: ['AUD'] },
+    { regex: new RegExp('NZD\\s?' + NUM, 'g'), currencies: ['NZD'] },
+    { regex: new RegExp('SGD\\s?' + NUM, 'g'), currencies: ['SGD'] },
+    { regex: new RegExp('HKD\\s?' + NUM, 'g'), currencies: ['HKD'] },
+    { regex: new RegExp('CAD\\s?' + NUM, 'g'), currencies: ['CAD'] },
+    { regex: new RegExp('MXN\\s?' + NUM, 'g'), currencies: ['MXN'] },
+    { regex: new RegExp('MYR\\s?' + NUM, 'g'), currencies: ['MYR'] },
+    { regex: new RegExp('PLN\\s?' + NUM, 'g'), currencies: ['PLN'] },
+    { regex: new RegExp('CHF\\s?' + NUM, 'g'), currencies: ['CHF'] },
+    { regex: new RegExp('ZAR\\s?' + NUM, 'g'), currencies: ['ZAR'] },
+    { regex: new RegExp('NOK\\s?' + NUM, 'g'), currencies: ['NOK'] },
+    { regex: new RegExp('SEK\\s?' + NUM, 'g'), currencies: ['SEK'] },
+    { regex: new RegExp('DKK\\s?' + NUM, 'g'), currencies: ['DKK'] },
+    { regex: new RegExp('CZK\\s?' + NUM, 'g'), currencies: ['CZK'] },
+    { regex: new RegExp('HUF\\s?' + NUM, 'g'), currencies: ['HUF'] },
+    { regex: new RegExp('RON\\s?' + NUM, 'g'), currencies: ['RON'] },
+    { regex: new RegExp('ISK\\s?' + NUM, 'g'), currencies: ['ISK'] },
+    { regex: new RegExp('BGN\\s?' + NUM, 'g'), currencies: ['BGN'] },
   ];
 
   let rates = {};
@@ -46,10 +114,14 @@
   function parseAmount(text) {
     // Remove currency symbols and codes
     let cleaned = text
-      .replace(/US\$/g, '')
+      // Compound $ prefixes (must be before bare $)
+      .replace(/(?:CDN|Mex|US|AU|NZ|HK|CA|A|C|R|S)\$/g, '')
       .replace(/Rp\.?/g, '')
-      .replace(/[$€£¥元]/g, '')
-      .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB|IDR)\b/g, '')
+      .replace(/RM/g, '')
+      .replace(/[$€£¥元₹₩₱₪฿₺]/g, '')
+      .replace(/zł/g, '')
+      .replace(/\bkr\b/g, '')
+      .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB|IDR|INR|KRW|PHP|ILS|THB|TRY|BRL|AUD|NZD|SGD|HKD|CAD|MXN|MYR|PLN|CHF|ZAR|NOK|SEK|DKK|CZK|HUF|RON|ISK|BGN)\b/g, '')
       .trim();
 
     // Detect and remove suffix multiplier (K, M, Mn, B, Bn)
@@ -83,11 +155,10 @@
 
   function formatCurrency(amount, currency) {
     try {
+      // Let Intl handle correct decimal places per currency (JPY=0, KRW=0, etc.)
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currency,
-        minimumFractionDigits: currency === 'JPY' ? 0 : 2,
-        maximumFractionDigits: currency === 'JPY' ? 0 : 2,
       }).format(amount);
     } catch {
       return `${currency} ${amount.toFixed(2)}`;
@@ -293,7 +364,7 @@
   }
 
   // Quick check if text contains any currency indicator before running full regex
-  const CURRENCY_CHARS = /[$€£¥元]|Rp|USD|EUR|GBP|JPY|CNY|RMB|IDR/;
+  const CURRENCY_CHARS = /[$€£¥元₹₩₱₪฿₺]|Rp|RM|zł|kr|USD|EUR|GBP|JPY|CNY|RMB|IDR|INR|KRW|PHP|ILS|THB|TRY|BRL|AUD|NZD|SGD|HKD|CAD|MXN|MYR|PLN|CHF|ZAR|NOK|SEK|DKK|CZK|HUF|RON|ISK|BGN/;
 
   let isScanning = false;
 

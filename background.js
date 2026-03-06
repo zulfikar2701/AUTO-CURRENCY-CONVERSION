@@ -1,31 +1,30 @@
-const SOURCE_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'IDR'];
 const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
 
-async function fetchRatesForCurrency(base) {
-  const url = `https://api.frankfurter.app/latest?from=${base}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch rates for ${base}`);
-  return response.json();
-}
-
 async function fetchAllRates() {
-  const rates = {};
-  const results = await Promise.allSettled(
-    SOURCE_CURRENCIES.map(async (currency) => {
-      const data = await fetchRatesForCurrency(currency);
-      if (data && data.rates && typeof data.rates === 'object') {
-        rates[currency] = data.rates;
-      } else {
-        console.error(`Invalid rate data for ${currency}`);
-      }
-    })
-  );
+  // Single API call using EUR as base (ECB native base currency)
+  // This returns EUR → X rates for all supported currencies
+  const url = 'https://api.frankfurter.app/latest?from=EUR';
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch rates');
+  const data = await response.json();
 
-  results.forEach((result, i) => {
-    if (result.status === 'rejected') {
-      console.error(`Failed to fetch rates for ${SOURCE_CURRENCIES[i]}:`, result.reason);
+  if (!data || !data.rates || typeof data.rates !== 'object') {
+    throw new Error('Invalid rate data');
+  }
+
+  // Add EUR itself (rate to itself = 1)
+  const eurRates = { ...data.rates, EUR: 1 };
+  const currencies = Object.keys(eurRates);
+
+  // Compute all cross-rates: rates[A][B] = eurRates[B] / eurRates[A]
+  const rates = {};
+  for (const from of currencies) {
+    rates[from] = {};
+    for (const to of currencies) {
+      if (from === to) continue;
+      rates[from][to] = eurRates[to] / eurRates[from];
     }
-  });
+  }
 
   return rates;
 }
