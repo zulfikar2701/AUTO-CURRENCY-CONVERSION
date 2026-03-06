@@ -1,6 +1,6 @@
 (() => {
   // Suffix pattern for K (thousands), M/Mn (millions), B/Bn (billions)
-  const SUFFIX = '(?:\\s?[KkMmBb][Nn]?)?';
+  const SUFFIX = '(?:\\s?[KkMmBb][Nn]?(?![a-zA-Z]))?';
   const NUM = '\\d{1,3}(?:,\\d{3})*(?:\\.\\d{1,2})?' + SUFFIX;
   const NUM_EU = '\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?' + SUFFIX;
   // Indonesian/dot-separated format: 12.900.000 (dots as thousands, no decimals)
