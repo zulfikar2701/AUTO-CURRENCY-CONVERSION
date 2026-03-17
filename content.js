@@ -110,6 +110,7 @@
   let tooltip = null;
   let observer = null;
   let processedNodes = new WeakSet();
+  let lastUrl = location.href;
 
   function parseAmount(text) {
     // Remove currency symbols and codes
@@ -483,6 +484,30 @@
     );
   }
 
+  function handleUrlChange() {
+    const currentUrl = location.href;
+    if (currentUrl === lastUrl) return;
+    lastUrl = currentUrl;
+    if (!enabled) return;
+    removeHighlights();
+    scanDocument();
+  }
+
+  function setupUrlChangeListener() {
+    // Intercept pushState/replaceState for SPA navigations (YouTube, etc.)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    history.pushState = function () {
+      originalPushState.apply(this, arguments);
+      handleUrlChange();
+    };
+    history.replaceState = function () {
+      originalReplaceState.apply(this, arguments);
+      handleUrlChange();
+    };
+    window.addEventListener('popstate', handleUrlChange);
+  }
+
   async function init() {
     try {
       const [settingsResponse, ratesResponse] = await Promise.all([
@@ -499,6 +524,8 @@
         enabled = false;
         return;
       }
+
+      setupUrlChangeListener();
 
       if (enabled) {
         if (Object.keys(rates).length > 0) {
