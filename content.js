@@ -1,6 +1,7 @@
 (() => {
-  // Suffix pattern for K (thousands), M/Mn (millions), B/Bn (billions)
-  const SUFFIX = '(?:\\s?[KkMmBb][Nn]?(?![a-zA-Z]))?';
+  // Suffix pattern for K (thousands), M/Mn (millions), B/Bn (billions),
+  // and word forms: thousand, million, billion, trillion
+  const SUFFIX = '(?:\\s?(?:[KkMmBb][Nn]?|[Tt]housand|[Mm]illion|[Bb]illion|[Tt]rillion)(?![a-zA-Z]))?';
   const NUM = '(?:\\d{4,}|\\d{1,3}(?:,\\d{3})*)(?:\\.\\d{1,2})?' + SUFFIX;
   const NUM_EU = '(?:\\d{4,}|\\d{1,3}(?:[.,]\\d{3})*)(?:[.,]\\d{1,2})?' + SUFFIX;
   // Indonesian/dot-separated format: 12.900.000 (dots as thousands, no decimals)
@@ -125,15 +126,16 @@
       .replace(/\b(?:USD|EUR|GBP|JPY|CNY|RMB|IDR|INR|KRW|PHP|ILS|THB|TRY|BRL|AUD|NZD|SGD|HKD|CAD|MXN|MYR|PLN|CHF|ZAR|NOK|SEK|DKK|CZK|HUF|RON|ISK|BGN)\b/g, '')
       .trim();
 
-    // Detect and remove suffix multiplier (K, M, Mn, B, Bn)
+    // Detect and remove suffix multiplier (K, M, Mn, B, Bn, thousand, million, billion, trillion)
     let multiplier = 1;
-    const suffixMatch = cleaned.match(/([KkMmBb][Nn]?)\s*$/);
+    const suffixMatch = cleaned.match(/([KkMmBb][Nn]?|[Tt]housand|[Mm]illion|[Bb]illion|[Tt]rillion)\s*$/);
     if (suffixMatch) {
-      const suffix = suffixMatch[1].toUpperCase();
-      if (suffix === 'K') multiplier = 1_000;
-      else if (suffix === 'M' || suffix === 'MN') multiplier = 1_000_000;
-      else if (suffix === 'B' || suffix === 'BN') multiplier = 1_000_000_000;
-      cleaned = cleaned.replace(/[KkMmBb][Nn]?\s*$/, '').trim();
+      const suffix = suffixMatch[1].toLowerCase();
+      if (suffix === 'k' || suffix === 'thousand') multiplier = 1_000;
+      else if (suffix === 'm' || suffix === 'mn' || suffix === 'million') multiplier = 1_000_000;
+      else if (suffix === 'b' || suffix === 'bn' || suffix === 'billion') multiplier = 1_000_000_000;
+      else if (suffix === 't' || suffix === 'trillion') multiplier = 1_000_000_000_000;
+      cleaned = cleaned.replace(/(?:[KkMmBb][Nn]?|[Tt]housand|[Mm]illion|[Bb]illion|[Tt]rillion)\s*$/, '').trim();
     }
 
     // Handle space-as-thousands format: 449 999 → 449999
@@ -479,6 +481,11 @@
 
   function isBlockedSite(blockedSites) {
     const host = window.location.hostname;
+    // Hardcode YouTube block to avoid title-display bugs
+    const youtubeDomains = ['youtube.com', 'youtu.be'];
+    if (youtubeDomains.some(d => host === d || host.endsWith('.' + d))) {
+      return true;
+    }
     return (blockedSites || []).some(domain =>
       host === domain || host.endsWith('.' + domain)
     );

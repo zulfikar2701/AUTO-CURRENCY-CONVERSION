@@ -15,7 +15,7 @@ Supports USD ($), EUR (€), GBP (£), JPY (¥), and CNY (¥/元) with conversio
 - Automatic detection of currency amounts on any webpage
 - Hover tooltip showing the converted value in your chosen currency
 - Handles common formats: `$1,000.50`, `€100`, `1.000,50€`, `¥10,000`, `£77M`, `$1.5B`
-- Works with shorthand suffixes (K, M, B) for thousands, millions, and billions
+- Works with shorthand suffixes (K, M, B) and full words (thousand, million, billion, trillion) for large numbers
 - Handles pages where the currency symbol and amount are in separate HTML elements
 - Exchange rates sourced from the European Central Bank via [frankfurter.app](https://www.frankfurter.app/), updated every 6 hours
 - No API key required
@@ -61,6 +61,7 @@ When `¥` is detected, both JPY and CNY conversions are shown since the symbol i
 - Exchange rates are cached locally and refreshed every 6 hours
 - The extension requires no special permissions beyond storage and access to the frankfurter.app API
 - Rates are provided by the European Central Bank — there may be slight differences compared to live market rates
+- **YouTube is disabled** to avoid title-display bugs caused by the site's dynamic text rendering
 
 ## License
 
